@@ -1,0 +1,9 @@
+[submodule "Arduino-Makefile"]
+	path = Arduino-Makefile
+	url = https://github.com/sudar/Arduino-Makefile.git
+[submodule "lib/FirmataMaster"]
+	path = lib/FirmataMaster
+	url = https://github.com/firmata/arduino.git
+[submodule "lib/Adafruit_CC3000"]
+	path = lib/Adafruit_CC3000
+	url = https://github.com/adafruit/Adafruit_CC3000_Library.git
