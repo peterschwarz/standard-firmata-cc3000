@@ -52,8 +52,8 @@
  *============================================================================*/
 
 // WLAN Config
-#define WLAN_SSID       "your_ssid"           // cannot be longer than 32 characters!
-#define WLAN_PASS       "your_pass"
+#define WLAN_SSID       ""           // cannot be longer than 32 characters!
+#define WLAN_PASS       ""
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
@@ -610,7 +610,7 @@ void setup()
   int result = wifi.begin(WLAN_SSID, WLAN_PASS, WLAN_SECURITY, PORT);
   if(!result) 
   {
-      Serial.println("wifi setup failed");  
+      Serial.println(F("wifi setup failed"));  
       while(1);
   }
   
@@ -625,9 +625,9 @@ void setup()
   Firmata.attach(START_SYSEX, sysexCallback);
   Firmata.attach(SYSTEM_RESET, systemResetCallback);
 
+  Serial.println(F("Beginning Firmata"));
   Firmata.begin(wifi);
-
-  Serial.println("Firmata ready");
+  Serial.println(F("Firmata ready"));
   systemResetCallback();  // reset to default config
 }
 
