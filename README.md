@@ -3,6 +3,12 @@
 
 This firmware provides the StandardFirmata protocol over tcp via WiFi. The socket is available on port 5000.  
 
+Set your wifi credentials in the following lines:
+```
+#define WLAN_SSID       "your_ssid"           // cannot be longer than 32 characters!
+#define WLAN_PASS       "your_pass"
+```
+
 The ip is set via dhcp.
 
 

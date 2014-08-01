@@ -20,7 +20,7 @@
 #define ADAFRUIT_CC3000_VBAT  5
 #define ADAFRUIT_CC3000_CS    10
 
-
+#define DISPLAY_FREE_RAM 1
 /**
  * Utilities
  */
@@ -45,6 +45,12 @@ uint16_t checkFirmwareVersion(Adafruit_CC3000 *cc3000)
     return version;
 }
 
+void logFreeRam() 
+{
+    #ifdef DISPLAY_FREE_RAM
+    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+    #endif
+}
 
 /******************************************************************************
  * Definitions
@@ -61,10 +67,7 @@ WifiStream::WifiStream()
 
 int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t wlan_security, uint16_t port)
 {
-    /* Initialise the module */
-    Serial.println(F("\nInitializing..."));
-    
-    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+    logFreeRam();
 
     if (!cc3000->begin())
     {
@@ -72,14 +75,13 @@ int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t 
         return 0;  
     }
     
-    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
     Serial.print(F("\nAttempting to connect to ")); Serial.println(wlan_ssid);
     if (!cc3000->connectToAP(wlan_ssid, wlan_password, wlan_security)) {
         Serial.println(F("Failed!"));
         return 0;
     }
 
-    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+    logFreeRam();
      
     Serial.println(F("Connected!"));
     
@@ -88,13 +90,11 @@ int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t 
 
 int WifiStream::complete_configuration(uint16_t port)
 {
-    Serial.println(F("Request DHCP"));
     while (!cc3000->checkDHCP())
     {
         delay(100); // ToDo: Insert a DHCP timeout!
     }  
 
-    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
         /* Display the IP address DNS, Gateway, etc. */  
     while (! displayConnectionDetails(&Serial)) 
     {
@@ -103,7 +103,7 @@ int WifiStream::complete_configuration(uint16_t port)
 
     server = new Adafruit_CC3000_Server(port);
 
-    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+    logFreeRam();
     return 1;
 }
 
@@ -130,7 +130,7 @@ bool WifiStream::displayConnectionDetails(Stream* debugStream)
 
 int WifiStream::connect_client() 
 {
-    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+    logFreeRam();
     if (!(client && client->connected())) {
         Adafruit_CC3000_ClientRef newClient = server->available();
         if (!newClient)         
