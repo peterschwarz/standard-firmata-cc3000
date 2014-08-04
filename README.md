@@ -14,6 +14,8 @@ The ip is set via dhcp.
 
 It has been tested with an Arduino Uno and the [WiFi breakout board](https://www.adafruit.com/products/1469).
 
+NOTE: currently not working - having some issues with the client connection and maintaining a reference to the pointer. Ah, C/C++ memory management.
+
 See [here](http://firmata.org) find more information about Firmata.
 
 ## How to install and use
