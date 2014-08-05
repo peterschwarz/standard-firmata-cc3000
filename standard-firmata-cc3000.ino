@@ -29,7 +29,7 @@
  * TODO: use Program Control to load stored profiles from EEPROM
  */
 
- 
+
 /*==============================================================================
  * ENABLE/DISABLE FEATURES
  *============================================================================*/
@@ -212,13 +212,13 @@ void checkDigitalInputs(void)
  */
 void setPinModeCallback(byte pin, int mode)
 {
-  #ifdef ENABLE_I2C
+#ifdef ENABLE_I2C
   if (pinConfig[pin] == I2C && isI2CEnabled && mode != I2C) {
     // disable i2c so pins can be used for other functions
     // the following if statements should reconfigure the pins properly
     disableI2CPins();
   }
-  #endif
+#endif
   if (IS_PIN_SERVO(pin) && mode != SERVO && servos[PIN_TO_SERVO(pin)].attached()) {
     servos[PIN_TO_SERVO(pin)].detach();
   }
@@ -272,7 +272,7 @@ void setPinModeCallback(byte pin, int mode)
       }
     }
     break;
-  #ifdef ENABLE_I2C  
+#ifdef ENABLE_I2C  
   case I2C:
     if (IS_PIN_I2C(pin)) {
       // mark the pin as i2c
@@ -280,7 +280,7 @@ void setPinModeCallback(byte pin, int mode)
       pinConfig[pin] = I2C;
     }
     break;
-  #endif
+#endif
   default:
     Firmata.sendString("Unknown pin mode"); // TODO: put error msgs in EEPROM
   }
