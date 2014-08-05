@@ -11,8 +11,19 @@
 
 #include <ccspi.h>
 #include <SPI.h>
-#include "utility/debug.h"
 #include "utility/socket.h"
+
+#define SERIAL_LOG_STR(text, value)  Serial.print(F(text)); Serial.println(value)
+#define SERIAL_LOG_INT(text, value)  Serial.print(F(text)); Serial.println(value, DEC)
+
+// #define DISPLAY_FREE_RAM 1
+#ifdef DISPLAY_FREE_RAM
+  #include "utility/debug.h"
+
+ #define LOG_FREE_RAM  SERIAL_LOG_INT("Free RAM: ", getFreeRam());
+#else
+ #define LOG_FREE_RAM 
+#endif
 
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
@@ -20,36 +31,22 @@
 #define ADAFRUIT_CC3000_VBAT  5
 #define ADAFRUIT_CC3000_CS    10
 
-#define DISPLAY_FREE_RAM 1
-/**
- * Utilities
- */
-uint16_t checkFirmwareVersion(Adafruit_CC3000 *cc3000)
-{
-    uint8_t major, minor;
-    uint16_t version;
-    
-  #ifndef CC3000_TINY_DRIVER  
-    if(!cc3000->getFirmwareVersion(&major, &minor))
-    {
-      Serial.println(F("Unable to retrieve the firmware version!\r\n"));
-      version = 0;
-    }
-    else
-    {
-      Serial.print(F("Firmware V. : "));
-      Serial.print(major); Serial.print(F(".")); Serial.println(minor);
-      version = major; version <<= 8; version |= minor;
-    }
-  #endif
-    return version;
-}
 
-void logFreeRam() 
+bool displayConnectionDetails(Adafruit_CC3000 *cc3000)
 {
-    #ifdef DISPLAY_FREE_RAM
-    Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
-    #endif
+  uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
+  
+  if(!cc3000->getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
+  {
+    Serial.println(F("Unable to retrieve the IP Address!\r\n"));
+    return false;
+  }
+  else
+  {
+    Serial.print(F("\nIP Addr: ")); cc3000->printIPdotsRev(ipAddress);
+    Serial.println();
+    return true;
+  }
 }
 
 /******************************************************************************
@@ -58,97 +55,71 @@ void logFreeRam()
 
 WifiStream::WifiStream()
 {
-    cc3000 = new Adafruit_CC3000(ADAFRUIT_CC3000_CS, 
-                             ADAFRUIT_CC3000_IRQ, 
-                             ADAFRUIT_CC3000_VBAT,
-                             SPI_CLOCK_DIVIDER);
-    client = 0;
 }
 
 int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t wlan_security, uint16_t port)
 {
-    logFreeRam();
+    LOG_FREE_RAM
 
-    if (!cc3000->begin())
+    Adafruit_CC3000 cc3000(ADAFRUIT_CC3000_CS, 
+                           ADAFRUIT_CC3000_IRQ, 
+                           ADAFRUIT_CC3000_VBAT,
+                           SPI_CLOCK_DIVIDER);
+
+
+    if (!cc3000.begin())
     {
-        Serial.println(F("Couldn't begin()! Check your wiring?"));
+        // Serial.println(F("Couldn't begin()! Check your wiring?"));
         return 0;  
     }
     
-    Serial.print(F("\nAttempting to connect to ")); Serial.println(wlan_ssid);
-    if (!cc3000->connectToAP(wlan_ssid, wlan_password, wlan_security)) {
-        Serial.println(F("Failed!"));
+    SERIAL_LOG_STR("\nAttempting to connect to ", wlan_ssid);
+    if (!cc3000.connectToAP(wlan_ssid, wlan_password, wlan_security)) {
         return 0;
     }
 
-    logFreeRam();
+    LOG_FREE_RAM
      
-    Serial.println(F("Connected!"));
-    
-   return complete_configuration(port);
-}
-
-int WifiStream::complete_configuration(uint16_t port)
-{
-    while (!cc3000->checkDHCP())
+    // Serial.println(F("Connected!"));
+    int dhcp_attempts = 20;
+    while (!cc3000.checkDHCP())
     {
-        delay(100); // ToDo: Insert a DHCP timeout!
+        if (dhcp_attempts <= 0) {
+            return 0;
+        }
+        delay(100); 
+        dhcp_attempts--;
+
     }  
 
         /* Display the IP address DNS, Gateway, etc. */  
-    while (! displayConnectionDetails(&Serial)) 
+    while (! displayConnectionDetails(&cc3000)) 
     {
         delay(1000);
     }
 
+    SERIAL_LOG_INT("\nStarting server on port ", port);
     server = new Adafruit_CC3000_Server(port);
+    server->begin();
 
-    logFreeRam();
+    LOG_FREE_RAM
     return 1;
 }
 
-bool WifiStream::displayConnectionDetails(Stream* debugStream)
+Adafruit_CC3000_ClientRef WifiStream::connect_client() 
 {
-  uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
-  
-  if(!cc3000->getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
-  {
-    debugStream->println(F("Unable to retrieve the IP Address!\r\n"));
-    return false;
-  }
-  else
-  {
-    debugStream->print(F("\nIP Addr: ")); cc3000->printIPdotsRev(ipAddress);
-    debugStream->print(F("\nNetmask: ")); cc3000->printIPdotsRev(netmask);
-    debugStream->print(F("\nGateway: ")); cc3000->printIPdotsRev(gateway);
-    debugStream->print(F("\nDHCPsrv: ")); cc3000->printIPdotsRev(dhcpserv);
-    debugStream->print(F("\nDNSserv: ")); cc3000->printIPdotsRev(dnsserv);
-    debugStream->println();
-    return true;
-  }
-}
-
-int WifiStream::connect_client() 
-{
-    logFreeRam();
-    if (!(client && client->connected())) {
-        Adafruit_CC3000_ClientRef newClient = server->available();
-        if (!newClient)         
-            return 0;
-
-        client = &newClient;   
-    }
-    return 1;
+    LOG_FREE_RAM
+    return server->available();
 }
 
 int WifiStream::available()
 {
-    return connect_client() ? client->available() : 0;
+    return connect_client().available();
 }
 
 int WifiStream::read()
 {
-    return connect_client() ? client->read() : 0;
+    return connect_client().read();
 }
 
 void WifiStream::flush() {
@@ -160,5 +131,5 @@ int WifiStream::peek() {
 }
 
 size_t WifiStream::write(uint8_t outcomingByte) {  
-    return connect_client() ? client->write(outcomingByte) : 0;
+    return connect_client().write(outcomingByte);
 }

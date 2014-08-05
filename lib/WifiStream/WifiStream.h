@@ -16,14 +16,10 @@ class WifiStream : public Stream
 {
   private:
     
-    Adafruit_CC3000 *cc3000;
     Adafruit_CC3000_Server *server;
     Adafruit_CC3000_ClientRef *client;
 
-    int connect_client();
-    bool displayConnectionDetails(Stream* stream);
-
-    int complete_configuration(uint16_t port);
+    Adafruit_CC3000_ClientRef connect_client();
 
   public:       
     WifiStream();

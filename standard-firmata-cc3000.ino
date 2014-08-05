@@ -29,8 +29,18 @@
  * TODO: use Program Control to load stored profiles from EEPROM
  */
 
+ 
+/*==============================================================================
+ * ENABLE/DISABLE FEATURES
+ *============================================================================*/
+#define ENABLE_I2C 1
+
 #include <Servo.h>
+
+#ifdef ENABLE_I2C
 #include <Wire.h>
+#endif
+
 #include <Firmata.h>
 #include <WifiStream.h>
 
@@ -52,8 +62,8 @@
  *============================================================================*/
 
 // WLAN Config
-#define WLAN_SSID       ""           // cannot be longer than 32 characters!
-#define WLAN_PASS       ""
+#define WLAN_SSID       "liftloft"           // cannot be longer than 32 characters!
+#define WLAN_PASS       "11111111"
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
@@ -82,6 +92,7 @@ unsigned long previousMillis;       // for comparison with currentMillis
 int samplingInterval = 19;          // how often to run the main loop (in ms)
 
 /* i2c data */
+#ifdef ENABLE_I2C
 struct i2c_device_info {
   byte addr;
   byte reg;
@@ -95,6 +106,7 @@ byte i2cRxData[32];
 boolean isI2CEnabled = false;
 signed char queryIndex = -1;
 unsigned int i2cReadDelayTime = 0;  // default delay time between i2c read request and Wire.requestFrom()
+#endif
 
 Servo servos[MAX_SERVOS];
 /*==============================================================================
@@ -102,10 +114,13 @@ Servo servos[MAX_SERVOS];
  *============================================================================*/
 
  // Declare for the compiler:
+ void reportAnalogCallback(byte analogPin, int value);
+ #ifdef ENABLE_I2C
  void disableI2CPins();
  void enableI2CPins();
- void reportAnalogCallback(byte analogPin, int value);
+ #endif
 
+#ifdef ENABLE_I2C
 void readAndReportData(byte address, int theRegister, byte numBytes) {
   // allow I2C requests that don't require a register read
   // for example, some devices using an interrupt pin to signify new data available
@@ -152,6 +167,7 @@ void readAndReportData(byte address, int theRegister, byte numBytes) {
   // send slave address, register and received bytes
   Firmata.sendSysex(SYSEX_I2C_REPLY, numBytes + 2, i2cRxData);
 }
+#endif
 
 void outputPort(byte portNumber, byte portValue, byte forceSend)
 {
@@ -196,11 +212,13 @@ void checkDigitalInputs(void)
  */
 void setPinModeCallback(byte pin, int mode)
 {
+  #ifdef ENABLE_I2C
   if (pinConfig[pin] == I2C && isI2CEnabled && mode != I2C) {
     // disable i2c so pins can be used for other functions
     // the following if statements should reconfigure the pins properly
     disableI2CPins();
   }
+  #endif
   if (IS_PIN_SERVO(pin) && mode != SERVO && servos[PIN_TO_SERVO(pin)].attached()) {
     servos[PIN_TO_SERVO(pin)].detach();
   }
@@ -254,6 +272,7 @@ void setPinModeCallback(byte pin, int mode)
       }
     }
     break;
+  #ifdef ENABLE_I2C  
   case I2C:
     if (IS_PIN_I2C(pin)) {
       // mark the pin as i2c
@@ -261,6 +280,7 @@ void setPinModeCallback(byte pin, int mode)
       pinConfig[pin] = I2C;
     }
     break;
+  #endif
   default:
     Firmata.sendString("Unknown pin mode"); // TODO: put error msgs in EEPROM
   }
@@ -346,13 +366,16 @@ void reportDigitalCallback(byte port, int value)
 
 void sysexCallback(byte command, byte argc, byte *argv)
 {
+#ifdef ENABLE_I2C
   byte mode;
   byte slaveAddress;
   byte slaveRegister;
   byte data;
   unsigned int delayTime; 
+#endif
   
   switch(command) {
+#ifdef ENABLE_I2C  
   case I2C_REQUEST:
     mode = argv[1] & I2C_READ_WRITE_MODE_MASK;
     if (argv[1] & I2C_10BIT_ADDRESS_MODE_MASK) {
@@ -444,6 +467,7 @@ void sysexCallback(byte command, byte argc, byte *argv)
     }
     
     break;
+#endif
   case SERVO_CONFIG:
     if(argc > 4) {
       // these vars are here for clarity, they'll optimized away by the compiler
@@ -533,6 +557,7 @@ void sysexCallback(byte command, byte argc, byte *argv)
   }
 }
 
+#ifdef ENABLE_I2C
 void enableI2CPins()
 {
   byte i;
@@ -559,7 +584,7 @@ void disableI2CPins() {
     // uncomment the following if or when the end() method is added to Wire library
     // Wire.end();
 }
-
+#endif
 /*==============================================================================
  * SETUP()
  *============================================================================*/
@@ -568,9 +593,11 @@ void systemResetCallback()
 {
   // initialize a defalt state
   // TODO: option to load config from EEPROM instead of default
+#ifdef ENABLE_I2C
   if (isI2CEnabled) {
     disableI2CPins();
   }
+#endif
   for (byte i=0; i < TOTAL_PORTS; i++) {
     reportPINs[i] = false;      // by default, reporting off
     portConfigInputs[i] = 0;  // until activated
@@ -625,9 +652,9 @@ void setup()
   Firmata.attach(START_SYSEX, sysexCallback);
   Firmata.attach(SYSTEM_RESET, systemResetCallback);
 
-  Serial.println(F("Beginning Firmata"));
+  Serial.print(F("Beginning Firmata..."));
   Firmata.begin(wifi);
-  Serial.println(F("Firmata ready"));
+  Serial.println(F("ready"));
   systemResetCallback();  // reset to default config
 }
 
@@ -663,11 +690,13 @@ void loop()
         }
       }
     }
+#ifdef ENABLE_I2C    
     // report i2c data for all device with read continuous mode enabled
     if (queryIndex > -1) {
       for (byte i = 0; i < queryIndex + 1; i++) {
         readAndReportData(query[i].addr, query[i].reg, query[i].bytes);
       }
     }
+#endif
   }
 }
