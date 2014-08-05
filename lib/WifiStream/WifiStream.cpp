@@ -13,8 +13,9 @@
 #include <SPI.h>
 #include "utility/socket.h"
 
-#define SERIAL_LOG_STR(text, value)  Serial.print(F(text)); Serial.println(value)
-#define SERIAL_LOG_INT(text, value)  Serial.print(F(text)); Serial.println(value, DEC)
+#define SERIAL_LOG(msg) Serial.println(F(msg));
+#define SERIAL_LOG_STR(text, value)  Serial.print(F(text)); Serial.println(value);
+#define SERIAL_LOG_INT(text, value)  Serial.print(F(text)); Serial.println(value, DEC);
 
 // #define DISPLAY_FREE_RAM 1
 #ifdef DISPLAY_FREE_RAM
@@ -69,12 +70,13 @@ int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t 
 
     if (!cc3000.begin())
     {
-        // Serial.println(F("Couldn't begin()! Check your wiring?"));
+        SERIAL_LOG("Couldn't begin()! Check your wiring?");
         return 0;  
     }
     
     SERIAL_LOG_STR("\nAttempting to connect to ", wlan_ssid);
     if (!cc3000.connectToAP(wlan_ssid, wlan_password, wlan_security)) {
+        SERIAL_LOG_STR("Unable to connect to ", wlan_ssid)
         return 0;
     }
 
@@ -85,6 +87,7 @@ int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t 
     while (!cc3000.checkDHCP())
     {
         if (dhcp_attempts <= 0) {
+            SERIAL_LOG("DHCP timeout occurred.")
             return 0;
         }
         delay(100); 
@@ -98,7 +101,7 @@ int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t 
         delay(1000);
     }
 
-    SERIAL_LOG_INT("\nStarting server on port ", port);
+    SERIAL_LOG_INT("\nStarting server on port ", port)
     server = new Adafruit_CC3000_Server(port);
     server->begin();
 
@@ -109,7 +112,11 @@ int WifiStream::begin(const char* wlan_ssid, const char* wlan_password, uint8_t 
 Adafruit_CC3000_ClientRef WifiStream::connect_client() 
 {
     LOG_FREE_RAM
-    return server->available();
+    Adafruit_CC3000_ClientRef newClient = server->available();
+    if (newClient) {
+        SERIAL_LOG("New Client Connected")
+    }
+    return newClient;
 }
 
 int WifiStream::available()
@@ -123,10 +130,13 @@ int WifiStream::read()
 }
 
 void WifiStream::flush() {
-    
+    while(available()) read();
 }
 
 int WifiStream::peek() {
+    if (!available()) {
+        return -1;
+    }
     return 0;
 }
 

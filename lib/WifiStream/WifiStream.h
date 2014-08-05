@@ -17,7 +17,7 @@ class WifiStream : public Stream
   private:
     
     Adafruit_CC3000_Server *server;
-    Adafruit_CC3000_ClientRef *client;
+    // Adafruit_CC3000_ClientRef *client;
 
     Adafruit_CC3000_ClientRef connect_client();
 
