@@ -62,8 +62,8 @@
  *============================================================================*/
 
 // WLAN Config
-#define WLAN_SSID       "liftloft"           // cannot be longer than 32 characters!
-#define WLAN_PASS       "11111111"
+#define WLAN_SSID       "yourssid"           // cannot be longer than 32 characters!
+#define WLAN_PASS       "yourpass"
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 

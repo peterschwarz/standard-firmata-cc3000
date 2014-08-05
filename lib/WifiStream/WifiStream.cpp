@@ -134,10 +134,7 @@ void WifiStream::flush() {
 }
 
 int WifiStream::peek() {
-    if (!available()) {
-        return -1;
-    }
-    return 0;
+    return -1;
 }
 
 size_t WifiStream::write(uint8_t outcomingByte) {  
