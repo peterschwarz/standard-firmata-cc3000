@@ -15,15 +15,14 @@
 class WifiStream : public Stream
 {
   private:
-    
+    Adafruit_CC3000 *cc3000;
     Adafruit_CC3000_Server *server;
     // Adafruit_CC3000_ClientRef *client;
 
-    Adafruit_CC3000_ClientRef connect_client();
+    // int connect_client();
 
   public:       
     WifiStream();
-    
 
     // Begins with static credentials
     int begin(const char* wlan_ssid, const char* wlan_password, uint8_t wlan_security, uint16_t port);
